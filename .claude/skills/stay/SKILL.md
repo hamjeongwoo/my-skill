@@ -20,6 +20,7 @@ argument-hint: "on | off"
 아래에서는 이 둘을 `ask_watch.py`, `ask_me.py` 로 줄여 적는다 — **실행할 때는 위의 전체 경로**.
 
 설계: `docs/superpowers/specs/2026-09-30-away-monitor-design.md` (T-020)
+설정(봇 토큰·chat id 받는 법): 이 폴더의 `SETUP.md`
 
 ## `/stay off` — 자리 비움(텔레그램으로)
 
