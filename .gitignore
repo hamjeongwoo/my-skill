@@ -1,0 +1,6 @@
+# Claude Code 로컬 전용 설정(개인 권한·세션 값)
+.claude/settings.local.json
+
+# OS / 편집기
+.DS_Store
+Thumbs.db
