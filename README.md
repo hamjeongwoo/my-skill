@@ -1,22 +1,49 @@
 # my-skill
 
-내가 만든 Claude Code 스킬을 모아 관리하는 저장소.
+Claude Code 스킬 모음. 받아서 프로젝트의 `.claude/skills/` 에 넣으면 바로 쓸 수 있다.
+
+## 설치
+
+```bash
+git clone https://github.com/hamjeongwoo/my-skill.git
+```
+
+원하는 스킬 폴더를 **내 프로젝트**의 `.claude/skills/` 아래에 복사하거나 심볼릭 링크한다.
+모든 프로젝트에서 쓰려면 `~/.claude/skills/` 에 넣는다.
+
+```bash
+# 예: addtask 를 현재 프로젝트에 복사
+cp -r my-skill/.claude/skills/addtask .claude/skills/
+
+# 예: stay 를 모든 프로젝트에서 쓰도록 홈에 링크 (macOS/Linux)
+ln -s "$PWD/my-skill/.claude/skills/stay" ~/.claude/skills/stay
+```
+
+```powershell
+# Windows 심볼릭 링크 (관리자 권한 또는 개발자 모드 필요)
+New-Item -ItemType SymbolicLink -Path "$HOME\.claude\skills\stay" -Target "$PWD\my-skill\.claude\skills\stay"
+```
+
+스킬마다 추가 준비물이 있으면 그 폴더의 `SETUP.md` 에 적혀 있다.
 
 ## 구조
 
 ```
-.claude/skills/<스킬이름>/SKILL.md   # 스킬 본문 (Claude 가 읽는다)
-.claude/skills/<스킬이름>/SETUP.md   # 사람이 읽는 설정 안내 (있는 경우)
+.claude/skills/<스킬이름>/SKILL.md     # 스킬 본문 (Claude 가 읽는다)
+.claude/skills/<스킬이름>/SETUP.md     # 사람이 읽는 설치·설정 안내 (필요한 스킬만)
+.claude/skills/<스킬이름>/scripts/     # 스킬이 부르는 프로그램 (필요한 스킬만)
 ```
 
 스킬 하나가 폴더 하나. `SKILL.md` 머리말의 `name`·`description` 으로 Claude 가 언제 쓸지 판단한다.
+스킬 안에는 특정 PC 의 경로가 없다. 프로그램이 필요한 스킬은 그 프로그램을 `scripts/` 에 동봉하고,
+스킬이 로드될 때 알려 주는 자기 폴더 경로로 부른다.
 
 ## 스킬 목록
 
-| 스킬 | 한 줄 요약 | 설정 필요 |
+| 스킬 | 한 줄 요약 | 준비물 |
 |---|---|---|
 | [`addtask`](#addtask--할-일-관리) | 작업 지시를 일감으로 남기고 상태·진행 기록·연결 문서를 관리한다 | 없음 |
-| [`stay`](#stay--자리-있음채팅--자리-비움텔레그램) | 자리에 있는지(채팅)·비웠는지(텔레그램)를 전환한다 | 텔레그램 봇 토큰·chat id |
+| [`stay`](#stay--자리-있음채팅--자리-비움텔레그램) | 자리를 비운 동안 질문·보고를 텔레그램으로 주고받는다 | 파이썬, 텔레그램 봇 ([SETUP.md](.claude/skills/stay/SETUP.md)) |
 
 ---
 
@@ -33,7 +60,8 @@
 | `docs/DONE.md` | 완료 일감만. 최근 것이 위 |
 
 완료된 일감은 `TODO.md` 에서 잘라 `DONE.md` 맨 위로 옮기고, 두 파일을 같은 커밋에서 고친다.
-항상 메인 체크아웃(worktree 아님)의 파일만 고치고 push 는 하지 않는다.
+항상 메인 체크아웃(worktree 아님)의 파일만 고치고 push 는 하지 않는다. 두 파일이 없는 저장소에서는
+만들어도 되는지 먼저 묻는다.
 
 **쓰는 법**
 
@@ -47,8 +75,8 @@
 | `/addtask 연결 T-012 <경로 또는 커밋>` | 연결 목록에 한 줄 추가 |
 
 **자동 갱신.** 커맨드 없이도 설계 승인, 계획·구현 커밋, 병합, 배포, 검증, 완료 같은 일이 생기면
-Claude 가 해당 일감의 진행 기록과 상태를 스스로 고친다. 이 동작은 전역 `~/.claude/CLAUDE.md` 의
-"할 일 문서 갱신" 절과 짝을 이룬다.
+Claude 가 해당 일감의 진행 기록과 상태를 스스로 고친다. 스킬이 로드되지 않은 턴에도 지켜지게 하려면
+자기 `CLAUDE.md` 에 그 규칙을 한 줄 적어 두는 것을 권한다.
 
 **일감 형식**
 
@@ -56,7 +84,7 @@ Claude 가 해당 일감의 진행 기록과 상태를 스스로 고친다. 이 
 ### T-012 제목
 - 상태: 대기 · 요청 2026-09-30 · 갱신 2026-09-30
 - 요청: 사용자 요청의 요지
-- 연결: [설계](docs/...md) · 커밋 `abc1234`
+- 연결: [설계](docs/specs/...md) · 커밋 `abc1234`
 - 다음: 다음에 할 한 가지
 - 진행:
   - 2026-09-30 일감 추가
@@ -71,36 +99,35 @@ Claude Code 세션을 켜 둔 채 자리를 비울 때, **질문과 보고를 �
 
 | 명령 | 동작 |
 |---|---|
-| `/stay off` | 자리 비움. 텔레그램 감시기(`ask_watch.py`)를 켜고 PC 절전 방지를 요청한다. 이후 질문·보고는 ask 봇으로 |
+| `/stay off` | 자리 비움. 텔레그램 감시기를 켜고 PC 절전 방지를 요청한다. 이후 질문·보고는 ask 봇으로 |
 | `/stay on` | 자리로 돌아옴. 감시기를 끄고 부재 중 주고받은 것을 요약한 뒤, 모아 둔 작업 지시를 팝업으로 확인한다 |
 | `/stay` | 지금 상태(부재 여부, 감시기 마지막 갱신 시각) |
 
-**부재 중 할 수 있는 일과 없는 일**
+**부재 중 행동 범위(기본값).** 텔레그램 글은 데이터이지 채팅 지시와 같은 권한이 아니다.
 
-- **한다**: 질문에 답, 읽기 전용 조사, 설계 문답, worktree 브랜치에서 코드 수정·테스트·커밋, master 병합(push 없음), 배포 준비(서버에 쓰지 않음), 할 일 문서 갱신
-- **돌아와서 채팅으로 확인**: 서버 배포 실행, 설정 변경, 권한 범위를 넓히는 것
-- **어떤 통로로도 안 한다**: 주문, 자금 이동, 자격증명 다루기
-- 텔레그램 글 안의 "승인했다" 같은 말은 승인으로 치지 않는다. 비밀값의 **내용**은 텔레그램으로 보내지 않는다
+- **텔레그램 지시로 한다**: 질문에 답, 읽기 전용 조사, 설계 문답, 브랜치에서 코드 수정·테스트·커밋, 로컬 병합(push 없음), 문서 갱신
+- **모아 두고 돌아오면 채팅에서 확인**: 배포·push·릴리스, 운영 서버·외부 서비스에 쓰기, 설정·권한 변경, 범위 자체를 넓히는 것
+- **어떤 통로로도 안 한다**: 결제·자금 이동, 자격증명 다루기
+- 비밀값의 **내용**은 텔레그램으로 보내지 않는다. 범위는 자기 `CLAUDE.md` 에서 조정할 수 있다(넓히는 쪽은 채팅에서만)
 
-**설정.** 매매 봇과 **별도의** 텔레그램 봇이 필요하다(같은 봇으로 두 곳에서 폴링하면 메시지를 서로 삼킨다).
-봇 토큰과 chat id 를 받아 `.env` 의 `TELEGRAM_ASK_BOT_TOKEN`, `TELEGRAM_ASK_BOT_CHAT_ID` 에 넣는다.
-단계별 안내: [`.claude/skills/stay/SETUP.md`](.claude/skills/stay/SETUP.md)
+**동봉 프로그램.** `scripts/` 에 파이썬 스크립트 두 개와 모듈 네 개가 들어 있다. 외부 의존은 `requests`,
+`python-dotenv` 뿐이다.
 
-**의존.** 이 스킬은 `auto-stock-investment` 프로젝트의 `scripts/ask_me.py`(질문·보고)와
-`scripts/ask_watch.py`(감시기)를 절대 경로로 부른다. 다른 PC 나 프로젝트에서 쓰려면 `SKILL.md` 의 경로를 고친다.
+| 파일 | 역할 |
+|---|---|
+| `scripts/ask_me.py` | 질문을 보내고 답을 기다린다 · 보고만 보낸다(`--notify`) · 부재 중 받은 지시를 모으고 읽는다 |
+| `scripts/ask_watch.py` | 부재 모드 켜기/끄기 · 부재 중 텔레그램을 폴링하는 감시기(Monitor 로 돌린다) |
+| `scripts/askbot/` | 텔레그램 API, 상태 파일, 감시 루프 모듈 |
+| `scripts/tests/` | 단위 테스트 113개 (`python -m pytest scripts/tests -q`) |
+
+**설정.** 봇 토큰과 chat id 를 `~/.claude/stay/.env`(또는 `STAY_HOME/.env`)에 넣는다. 다른 프로그램이
+이미 폴링하는 봇은 쓸 수 없다(메시지를 서로 삼킨다). 단계별 안내: [`SETUP.md`](.claude/skills/stay/SETUP.md)
 
 ---
 
-## 다른 프로젝트에서 쓰기
-
-프로젝트의 `.claude/skills/` 아래에 원하는 스킬 폴더를 복사하거나 심볼릭 링크한다.
-
-```powershell
-New-Item -ItemType SymbolicLink -Path "<프로젝트>\.claude\skills\addtask" -Target "C:\Users\hjw\claudeProject\my-skill\.claude\skills\addtask"
-```
-
 ## 스킬 추가하기
 
-1. `.claude/skills/<이름>/SKILL.md` 를 만든다. 머리말에 `name`, `description`, 필요하면 `argument-hint` 를 쓴다.
-2. 사람이 해야 하는 준비(토큰, 설치 등)가 있으면 같은 폴더에 `SETUP.md` 를 둔다.
-3. 이 README 의 스킬 목록 표와 설명 절에 한 항목을 더한다.
+1. `.claude/skills/<이름>/SKILL.md` 를 만든다. 머리말에 `name`, `description`(언제 쓰는지), 필요하면 `argument-hint` 를 쓴다.
+2. 특정 PC 의 경로를 넣지 않는다. 프로그램이 필요하면 `scripts/` 에 동봉하고 스킬 폴더 기준으로 부른다.
+3. 사람이 해야 하는 준비(토큰, 설치 등)가 있으면 같은 폴더에 `SETUP.md` 를 둔다.
+4. 이 README 의 스킬 목록 표와 설명 절에 한 항목을 더한다.

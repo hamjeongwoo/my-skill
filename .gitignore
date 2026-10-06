@@ -4,3 +4,8 @@
 # OS / 편집기
 .DS_Store
 Thumbs.db
+
+# 파이썬
+__pycache__/
+*.pyc
+.pytest_cache/
